@@ -152,7 +152,6 @@ function bayar($tanggal)
     $transaksis = mysqli_query($koneksi, "select * from transaksi where status = 'progress'");
     if (!empty($transaksis->num_rows)) {
         $transaksi = mysqli_fetch_assoc($transaksis);
-        $dt = mysqli_query($koneksi, "select * from detail_transaksi where transaksi_id = '$transaksi[transaksi_id]'");
         $data = mysqli_query($koneksi, "select detail_transaksi.*,menu.nama from detail_transaksi detail_transaksi inner join
      menu on detail_transaksi.menu_id = menu.menu_id where transaksi_id =  '$transaksi[transaksi_id]'");
         $data = mysqli_fetch_all($data, MYSQLI_ASSOC);
@@ -169,37 +168,34 @@ function bayar($tanggal)
 function searchdataandpagination($keyword, $makanan, $minuman, $halamanaktif)
 {
     global $koneksi;
-    $halamanaktif = (int)$halamanaktif;
-    $querys = "SELECT * FROM menu WHERE (nama LIKE '%$keyword%' OR harga LIKE '%$keyword%')";
-    if ($makanan == "false") {
-        $querys .= " AND kategori <> 'makanan'";
-    }
-    if ($minuman == "false") {
-        $querys .= " AND kategori <> 'minuman'";
-    }
-    $queries = mysqli_query($koneksi, $querys);
+    $halamanaktif = (int) $halamanaktif ?: 1;
+    $queryBase = "SELECT * FROM menu WHERE (nama LIKE '%$keyword%' OR harga LIKE '%$keyword%')";
 
-    $data = mysqli_fetch_all($queries, MYSQLI_ASSOC);
-    $jumlahdatperhalaman = 24;
+    if ($makanan == "false")
+        $queryBase .= " AND kategori <> 'makanan'";
+    if ($minuman == "false")
+        $queryBase .= " AND kategori <> 'minuman'";
+
+    $data = mysqli_fetch_all(mysqli_query($koneksi, $queryBase), MYSQLI_ASSOC);
+
+    $jumlahdataperhalaman = 3;
     $jumlahdata = count($data);
-    $jumlahHalaman = ceil($jumlahdata / $jumlahdatperhalaman);
-    if (empty($halamanaktif)) {
-        $halamanaktif = 1;
-    }
-    $awaldata = ($jumlahdatperhalaman * $halamanaktif) - $jumlahdatperhalaman;
-    $query = "SELECT * FROM menu WHERE (nama LIKE '%$keyword%' OR harga LIKE '%$keyword%')";
+    $jumlahHalaman = ceil($jumlahdata / $jumlahdataperhalaman);
+    $awaldata = ($jumlahdataperhalaman * $halamanaktif) - $jumlahdataperhalaman;
 
-    if ($makanan == "false") {
-        $query .= " AND kategori <> 'makanan'";
-    }
-    if ($minuman == "false") {
-        $query .= " AND kategori <> 'minuman'";
-    }
-    $query .= "ORDER BY menu_id DESC LIMIT $awaldata,$jumlahdatperhalaman";
-    $all = mysqli_query($koneksi, $query);
-    $isi = mysqli_fetch_all($all, MYSQLI_ASSOC);
-    return $array = ['jumlahdata' => $jumlahdata, 'jumlahHalaman' => $jumlahHalaman, 'jumlahdataperhalaman' => $jumlahdatperhalaman, 'halamanaktif' => $halamanaktif, 'awaldata' => $awaldata, 'data' => $isi];
+    $query = "$queryBase ORDER BY menu_id DESC LIMIT $awaldata, $jumlahdataperhalaman";
+    $isi = mysqli_fetch_all(mysqli_query($koneksi, $query), MYSQLI_ASSOC);
+
+    return [
+        'jumlahdata' => $jumlahdata,
+        'jumlahHalaman' => $jumlahHalaman,
+        'jumlahdataperhalaman' => $jumlahdataperhalaman,
+        'halamanaktif' => $halamanaktif,
+        'awaldata' => $awaldata,
+        'data' => $isi
+    ];
 }
+
 
 function Insertpengeluaran($data)
 {
@@ -212,50 +208,33 @@ function Insertpengeluaran($data)
     return $add = mysqli_query($koneksi, $query);
 }
 
-function dataByTanggal($jenis, $date)
-{
+function dataByTanggal($jenis, $date) {
     global $koneksi;
-    if ($jenis == 'pemasukan') {
-        if ($date == "hari") {
-            $tanggalawal = date('Y-m-d');
-            $pemasukan = mysqli_query($koneksi, "SELECT SUM(total_harga) as total_harga FROM transaksi WHERE tanggal_transaksi >= '$tanggalawal' and tanggal_transaksi <= '$tanggalawal 23:59:59'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "bulan") {
-            $tgl = date('m');
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(total_harga) as total_harga FROM transaksi WHERE month(tanggal_transaksi)='$tgl'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "tahun") {
-            $tgl = date('Y');
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(total_harga) as total_harga FROM transaksi WHERE Year(tanggal_transaksi)='$tgl'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "all") {
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(total_harga) as total_harga FROM transaksi");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-    } elseif ($jenis == "pengeluaran") {
-        if ($date == "hari") {
-            $tanggal = date('Y-m-d');
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE tanggal>='$tanggal' and tanggal <='$tanggal 23:59:59'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "bulan") {
-            $tgl = date('m');
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE month(tanggal)='$tgl'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "tahun") {
-            $tgl = date('Y');
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE Year(tanggal)='$tgl'");
-            return mysqli_fetch_assoc($pemasukan);
-        }
-        if ($date == "all") {
-            $pemasukan = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran");
-            return mysqli_fetch_assoc($pemasukan);
+
+    $dateFormats = [
+        'hari' => ['start' => date('Y-m-d'), 'end' => date('Y-m-d 23:59:59')],
+        'bulan' => ['start' => date('m'), 'condition' => 'month'],
+        'tahun' => ['start' => date('Y'), 'condition' => 'year'],
+        'all' => ['condition' => '']
+    ];
+
+    $table = $jenis == 'pemasukan' ? 'transaksi' : 'pengeluaran';
+    $column = $jenis == 'pemasukan' ? 'total_harga' : 'nominal';
+
+    $query = "SELECT SUM($column) as total_harga FROM $table";
+    
+    if ($date != 'all') {
+        if ($date == 'hari') {
+            $query .= " WHERE tanggal_transaksi >= '{$dateFormats[$date]['start']}' AND tanggal_transaksi <= '{$dateFormats[$date]['end']}'";
+        } else {
+            $condition = $dateFormats[$date]['condition'];
+            $start = $dateFormats[$date]['start'];
+            $query .= " WHERE $condition(tanggal_transaksi) = '$start'";
         }
     }
+
+    $result = mysqli_query($koneksi, $query);
+    return mysqli_fetch_assoc($result);
 }
 
 function alert($type, $text)

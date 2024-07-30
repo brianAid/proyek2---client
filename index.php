@@ -218,7 +218,7 @@ include "./tugas.php";
               <?php
               $tahun = date("Y");
               for ($bulan = 1; $bulan <= 12; $bulan++) {
-                $pemasukan_query = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE month(tanggal)='$bulan' And Year(tanggal)=$tahun");
+                $pemasukan_query = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE month(tanggal_transaksi)='$bulan' And Year(tanggal_transaksi)=$tahun");
                 $pemasukan_data = mysqli_fetch_assoc($pemasukan_query);
                 $pemasukan = $pemasukan_data['total_harga'];
                 if ($pemasukan == null) {
@@ -297,7 +297,7 @@ include "./tugas.php";
       // tahun
       const datatahun = {
         labels: [<?php
-                  $data = mysqli_fetch_all(mysqli_query($koneksi, "SELECT YEAR(tanggal) AS tanggal FROM pengeluaran
+                  $data = mysqli_fetch_all(mysqli_query($koneksi, "SELECT YEAR(tanggal_transaksi) AS tanggal FROM pengeluaran
                     UNION 
                     SELECT YEAR(tanggal_transaksi) AS tanggal FROM transaksi order by tanggal ASC"), MYSQLI_ASSOC);
                   foreach ($data as $d) {
@@ -335,7 +335,7 @@ include "./tugas.php";
               $pengeluaran = array();
               foreach ($data as $d) {
                 $tahun = $d['tanggal'];
-                $pemasukan_query = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE Year(tanggal)=$tahun");
+                $pemasukan_query = mysqli_query($koneksi, "SELECT sum(nominal) as total_harga FROM pengeluaran WHERE Year(tanggal_transaksi)=$tahun");
                 $pemasukan_data = mysqli_fetch_assoc($pemasukan_query);
                 $pengeluaran[$indek] = $pemasukan_data['total_harga'];
                 if ($pengeluaran[$indek] == null) {
